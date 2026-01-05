@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Love Puzzle ❤️</title>
+    <style>
+        :root {
+            --pink-soft: #ffafbd;
+            --pink-deep: #ffc3a0;
+            --romance-red: #e91e63;
+            --white: #ffffff;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--pink-soft), var(--pink-deep));
+            height: 100vh;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Canvas Background */
+        canvas#hearts {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+        }
+
+        /* Container Utama */
+        .game-container {
+            z-index: 1; background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(5px);
+            padding: 20px; border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(233, 30, 99, 0.2);
+            text-align: center; max-width: 90%;
+            border: 4px solid var(--white);
+        }
+
+        h2 { color: var(--romance-red); margin-top: 0; font-size: 1.5rem; }
+
+        /* Puzzle Board */
+        #puzzle-board {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 8px; width: 300px; height: 300px;
+            margin: 15px auto; border: 8px solid var(--white);
+            border-radius: 15px; background-color: rgba(255,255,255,0.5);
+        }
+
+        @media (max-width: 400px) {
+            #puzzle-board { width: 260px; height: 260px; }
+        }
+
+        .tile {
+            width: 100%; height: 100%;
+            background-size: 300px 300px;
+            cursor: pointer; border-radius: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 400px) {
+            .tile { background-size: 260px 260px; }
+        }
+
+        .empty { background: rgba(255, 175, 189, 0.3); cursor: default; box-shadow: none; }
+
+        /* Buttons */
+        .btn-surrender {
+            margin-top: 15px; padding: 10px 25px;
+            background: var(--romance-red); color: white;
+            border: none; border-radius: 50px;
+            cursor: pointer; font-weight: bold;
+            box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
+            transition: 0.3s;
+        }
+
+        .btn-surrender:hover { transform: translateY(-3px); background: #c2185b; }
+
+        /* Custom Sweet Notif */
+        #sweet-notif {
+            position: fixed; top: 20px; 
+            transform: translateY(-150%);
+            background: white; padding: 15px 25px;
+            border-radius: 50px; color: var(--romance-red);
+            font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            z-index: 100; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid var(--romance-red);
+        }
+
+        #sweet-notif.show { transform: translateY(0); }
+
+        /* Modal Styles */
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(255, 175, 189, 0.4);
+            backdrop-filter: blur(8px);
+            z-index: 10; justify-content: center; align-items: center;
+        }
+
+        .modal-box {
+            background: #fff; padding: 30px; width: 85%; max-width: 400px;
+            border-radius: 25px; text-align: center;
+            border: 4px solid var(--romance-red);
+            animation: popIn 0.5s ease;
+        }
+
+        .quiz-option {
+            display: block; width: 100%; padding: 12px;
+            margin: 10px 0; border: 2px solid var(--pink-soft);
+            border-radius: 15px; cursor: pointer; transition: 0.3s;
+            background: #fff5f7; color: #444; font-weight: 500;
+        }
+
+        .quiz-option:hover { background: var(--romance-red); color: white; border-color: var(--romance-red); }
+
+        .letter-text { font-size: 1.1rem; line-height: 1.6; color: #555; }
+
+        @keyframes popIn {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="hearts"></canvas>
+
+<div id="sweet-notif">Pesan di sini.. ❤️</div>
+
+<div class="game-container">
+    <h2>Susun Puzzle Ini ❤️</h2>
+    <div id="puzzle-board"></div>
+    <button class="btn-surrender" onclick="openQuiz()">Nyerah? Klik Sini Sayang 🏳️</button>
+</div>
+
+<div id="quiz-modal" class="overlay">
+    <div class="modal-box">
+        <h3 style="color: var(--romance-red)">Tunggu Dulu! 🛑</h3>
+        <p id="question-text">Jawab ini kalau mau dapet bocorannya:</p>
+        <div id="options-container"></div>
+    </div>
+</div>
+
+<div id="love-modal" class="overlay">
+    <div class="modal-box">
+        <h1 style="color: var(--romance-red)">Yeeey! 🎉</h1>
+        <div class="letter-text">
+            <p>"Walaupun kamu nyerah di puzzle, jangan pernah nyerah sama hubungan kita ya?"</p>
+            <p><strong>I Love You, Sayang! ❤️</strong></p>
+        </div>
+        <button class="btn-surrender" onclick="location.reload()">Main Lagi</button>
+    </div>
+</div>
+
+<script>
+    // --- CONFIG ---
+    const IMG_URL = 'https://i0.wp.com/findthefactors.com/wp-content/uploads/2013/11/1-9.jpg'; // Link foto pasangan
+    const board = document.getElementById('puzzle-board');
+    const notif = document.getElementById('sweet-notif');
+    let tiles = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+    // --- NOTIF CUSTOM ---
+    function showNotif(text) {
+        notif.innerText = text;
+        notif.classList.add('show');
+        setTimeout(() => notif.classList.remove('show'), 2500);
+    }
+
+    // --- GAME ENGINE ---
+    function init() {
+        tiles.sort(() => Math.random() - 0.5);
+        render();
+    }
+
+    function render() {
+        board.innerHTML = '';
+        tiles.forEach((val, i) => {
+            const div = document.createElement('div');
+            div.className = `tile ${val === 8 ? 'empty' : ''}`;
+            if(val !== 8) {
+                div.style.backgroundImage = `url(${IMG_URL})`;
+                div.style.backgroundPosition = `${(val % 3) * 50}% ${Math.floor(val / 3) * 50}%`;
+                div.onclick = () => move(i);
+            }
+            board.appendChild(div);
+        });
+    }
+
+    function move(i) {
+        const empty = tiles.indexOf(8);
+        const near = [i-1, i+1, i-3, i+3];
+        // Tambahan logika agar tidak wrap samping
+        const isValid = near.includes(empty) && !( (i % 3 === 0 && empty === i-1) || (i % 3 === 2 && empty === i+1) );
+        
+        if(isValid) {
+            [tiles[i], tiles[empty]] = [tiles[empty], tiles[i]];
+            render();
+            if(JSON.stringify(tiles)==='[0,1,2,3,4,5,6,7,8]') {
+                showNotif("Pinter banget sih! ❤️");
+                setTimeout(showLove, 1000);
+            }
+        }
+    }
+
+    // --- QUIZ DATA ---
+    const quiz = {
+        q: "Berapakah hasil dari 500 x 2 - 999 + Rasa Sayangku ke Kamu?",
+        options: [
+            { t: "A. Hasilnya 1", win: false, m: "Salah! Masa 1 sih? 🙄" },
+            { t: "B. Hasilnya 0", win: false, m: "Kok nol? Jahat bangeet! 😭" },
+            { t: "C. Tak Terhingga ✨", win: true, m: "Jawaban paling bener sedunia! ❤️" },
+            { t: "D. Ga tau, pusing", win: false, m: "Mikir dong sayaaang.. 😜" }
+        ]
+    };
+
+    function openQuiz() {
+        document.getElementById('quiz-modal').style.display = 'flex';
+        const container = document.getElementById('options-container');
+        document.getElementById('question-text').innerText = quiz.q;
+        container.innerHTML = '';
+        
+        quiz.options.forEach(opt => {
+            const b = document.createElement('button');
+            b.className = 'quiz-option';
+            b.innerText = opt.t;
+            b.onclick = () => {
+                if(opt.win) {
+                    document.getElementById('quiz-modal').style.display = 'none';
+                    showNotif(opt.m);
+                    setTimeout(autoWin, 1000);
+                } else {
+                    showNotif(opt.m);
+                }
+            };
+            container.appendChild(b);
+        });
+    }
+
+    function autoWin() {
+        tiles = [0,1,2,3,4,5,6,7,8];
+        render();
+        setTimeout(showLove, 800);
+    }
+
+    function showLove() {
+        document.getElementById('love-modal').style.display = 'flex';
+    }
+
+    // --- HEART ANIMATION ---
+    const canvas = document.getElementById('hearts');
+    const ctx = canvas.getContext('2d');
+    let heartArr = [];
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.onresize = resize; resize();
+
+    function draw() {
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        if(heartArr.length < 35) heartArr.push({
+            x: Math.random()*canvas.width, y: canvas.height+20, 
+            s: Math.random()*15+10, v: Math.random()*1.5+0.5,
+            o: Math.random()
+        });
+        heartArr.forEach((h, i) => {
+            ctx.globalAlpha = h.o;
+            ctx.font = h.s + "px serif";
+            ctx.fillText("❤️", h.x, h.y);
+            h.y -= h.v;
+            if(h.y < -20) heartArr.splice(i, 1);
+        });
+        requestAnimationFrame(draw);
+    }
+
+    init();
+    draw();
+</script>
+
+</body>
+</html>
